@@ -1,0 +1,143 @@
+---
+title: "04_r_kpi_analysis"
+author: "Yiran Han"
+date: "2026-02-11"
+output: html_document
+---
+
+```{r}
+# =========================================
+# Online Retail KPI (R) — Monthly Summary
+# Purpose: Lightweight R analysis to complement Python + Power BI
+# =========================================
+```
+
+```{r}
+# 0) Libraries ---------------------------------------------------------------
+# Install if needed:
+# install.packages("tidyverse")
+library(tidyverse)
+```
+
+```{r}
+# 1) Load data ---------------------------------------------------------------
+
+kpi_path <- "daily_kpi.csv"
+
+daily <- readr::read_csv(kpi_path, show_col_types = FALSE)
+
+# Basic sanity check
+glimpse(daily)
+```
+
+```{r}
+# 2) Parse date + basic checks ----------------------------------------------
+daily <- daily %>%
+  mutate(
+    date = as.Date(date),
+    year = as.integer(format(date, "%Y")),
+    month = as.integer(format(date, "%m")),
+    year_month = format(date, "%Y-%m")
+  )
+
+missing_report <- daily %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  pivot_longer(everything(), names_to = "col", values_to = "na_count") %>%
+  arrange(desc(na_count))
+
+print(missing_report)
+```
+
+```{r}
+# 3) Monthly aggregation -----------------------------------------------------
+monthly <- daily %>%
+  group_by(year_month, year, month) %>%
+  summarise(
+    days = n(),
+    net_revenue = sum(net_revenue, na.rm = TRUE),
+    gross_revenue = sum(gross_revenue, na.rm = TRUE),
+    return_revenue = sum(return_revenue, na.rm = TRUE),
+    orders = sum(orders, na.rm = TRUE),
+    active_customers_sum = sum(active_customers, na.rm = TRUE),
+    active_customers_avg = mean(active_customers, na.rm = TRUE),
+    items_sold = sum(items_sold, na.rm = TRUE),
+    rows = sum(rows, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    # Useful derived metrics
+    aov = if_else(orders > 0, net_revenue / orders, NA_real_),  # average order value
+    revenue_per_active_customer = if_else(active_customers_avg > 0,
+                                          net_revenue / active_customers_avg, NA_real_),
+    # Return rate based on revenue
+    return_rate = if_else(gross_revenue != 0,
+                          abs(return_revenue) / gross_revenue, NA_real_)
+  ) %>%
+  arrange(year, month)
+
+print(monthly)
+```
+
+```{r}
+# 4) Quick monthly summary table --------------------------------------------
+summary_tbl <- monthly %>%
+  summarise(
+    months = n(),
+    total_net_revenue = sum(net_revenue, na.rm = TRUE),
+    total_orders = sum(orders, na.rm = TRUE),
+    avg_monthly_net_revenue = mean(net_revenue, na.rm = TRUE),
+    avg_monthly_orders = mean(orders, na.rm = TRUE),
+    avg_return_rate = mean(return_rate, na.rm = TRUE)
+  )
+
+print(summary_tbl)
+```
+
+```{r}
+# 5) Visualization ------------------------------------------------
+# 5.1 Net revenue by month
+p1 <- ggplot(monthly, aes(x = year_month, y = net_revenue, group = 1)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 1.6) +
+  labs(
+    title = "Monthly Net Revenue",
+    x = "Year-Month",
+    y = "Net Revenue"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(p1)
+```
+
+```{r}
+# 5.2 Orders by month
+p2 <- ggplot(monthly, aes(x = year_month, y = orders, group = 1)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 1.6) +
+  labs(
+    title = "Monthly Orders",
+    x = "Year-Month",
+    y = "Orders"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(p2)
+```
+
+```{r}
+# 5.3 Avg active customers (daily average within month)
+p3 <- ggplot(monthly, aes(x = year_month, y = active_customers_avg, group = 1)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 1.6) +
+  labs(
+    title = "Average Daily Active Customers (Monthly)",
+    x = "Year-Month",
+    y = "Avg Daily Active Customers"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(p3)
+```
