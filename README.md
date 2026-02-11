@@ -47,8 +47,8 @@ Note: The raw dataset is not included in this repository due to GitHub size limi
 The dataset used in this project was obtained from Kaggle:
 Online Retail Dataset
 https://www.kaggle.com/datasets/ulrikthygepedersen/online-retail-dataset
-```
 
+```
 
 ---
 
@@ -71,11 +71,11 @@ Monthly aggregation is used to highlight seasonality and trend patterns.
 
 ### Monthly Net Revenue
 
-![Monthly Net Revenue](figures/kpi_monthly_net_revenue_trend.png)
+![Monthly Net Revenue](figures/monthly_net_revenue_trend.png)
 
 ### Monthly Orders
 
-![Monthly Orders](figures/kpi_monthly_orders_trend.png)
+![Monthly Orders](figures/kpi_monthly_active_customers_trend.png)
 
 ---
 
